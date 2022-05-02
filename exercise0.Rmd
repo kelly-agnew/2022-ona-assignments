@@ -1,6 +1,6 @@
 ---
 title: "Test RMD Template Exercise 0"
-output: pdf_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -8,7 +8,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(igraph)
-#tinytex::install_tinytex() #to fix LateX error when generating pdf
+
 
 ```
 
@@ -32,6 +32,11 @@ You can also embed plots, for example:
 plot(pressure)
 
 ```
+
+## FIX PDF ERROR
+tinytex::install_tinytex() #to fix LateX error when generating pdf
+
+
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 ```{r}

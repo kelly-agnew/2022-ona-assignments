@@ -29,6 +29,10 @@ You can also embed plots, for example:
 
 ![](exercise0_files/figure-gfm/pressure-1.png)<!-- -->
 
+## FIX PDF ERROR
+
+tinytex::install\_tinytex() \#to fix LateX error when generating pdf
+
 Note that the `echo = FALSE` parameter was added to the code chunk to
 prevent printing of the R code that generated the plot.
 
