@@ -1,0 +1,65 @@
+---
+title: "Exercise1"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Imports
+```{r}
+# graph analysis
+library(tidygraph)
+library(ggraph)
+library(igraph)
+
+# tidy data analysis and visualziation
+library(readr)
+library(dplyr)
+library(skimr)
+```
+
+
+## Read Data
+```{r}
+connections = read.csv("Data\\Connections.csv")
+```
+
+
+## Cleaning
+```{r}
+connections = subset(connections, select=-c(Email.Address))
+connections %>% skim() #good to go
+```
+
+## Preprocessing
+```{r}
+connections$Nodes = paste(connections$First.Name, substr(connections$Last.Name,0,1)) # Node names are first + first letter of last name
+
+
+```
+
+
+
+## GitHub Documents
+
+This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
+
+## Including Code
+
+You can include R code in the document as follows:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
