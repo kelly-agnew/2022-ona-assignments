@@ -1,6 +1,6 @@
 ---
 title: "Exercise3"
-output: github_document
+output: pdf_document
 ---
 
 
