@@ -248,20 +248,80 @@ V(adviceNet)$bet = round(Betweenness,2)
 
 ```
 
-
+## Model the relationship between centralities and app_proc_time
 ```{r}
+# first we'll need to merge the centrality measurements back into the imputed applications set
+centralities <- cbind(Degree, Eigenvector, Betweenness)
+centralities = round(centralities,2)
+centralities = data.frame(centralities)
+centralities <- cbind(examiner_id = rownames(centralities), centralities)
+rownames(centralities) <- 1:nrow(centralities)
 
+# now merge on examiner_id
+applications_final = merge(x=applications_full, y=centralities, by="examiner_id", all.x=TRUE)
+applications_final %>% skim() # we will have quite a few NaNs popping back up for those examiners who didnt ask any advice
+# nothing to do there but remove the missing values
+applications_final = drop_na(applications_final)
+
+# clean
+rm(examiner_aus)
+rm(egoNodes)
+rm(alterNodes)
+rm(nodes)
+rm(edges)
+rm(adviceNet)
+gc()
 
 ```
 
+## Modelling
+```{r}
+# we wish to model the relationship between various centralities and appl_days
+# we will make our first model as a simplistic model assuming no interactions among predictors
+lm1 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender, data=applications_final)
+summary(lm1)
+```
+Interpretations:
+- The "baseline" expectation for application processing time is a little under 600 days
+-     That would be for a female examiner who just started, 0 tenure days, and has never asked any advice
 
+- Everytime an examiner asks advice to a new colleague examiner (increase degree by 1), we expect processing time to decrease drastically (693 days)
+- Increasing an examiner's importance as measured by eigenvector centrality is expected to increase processing time by 139 days
+- Similarly, increasing an examiner's betweenness increases the processing time slightly (less than a day)
+
+- It is important to note that the centrality measurements are all coupled, so in a vacuum these interpretations are valid, but in practice we could not increase an examiner's degree without also altering in some way their eigenvector and betweenness centralities
+
+- Longer tenured examiners take slightly longer to process applications with each additional day of tenure
+- Male examiners are expected to take roughly 22 days longer to process than women
+
+We can try to capture some of the more complex relationships among predictors by adding interactions
 ```{r}
 
+lm2 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender+Degree*gender+Eigenvector*gender+Betweenness*gender, data=applications_final)
+summary(lm2)
 
 ```
 
+- The baseline expectation has increased to 621 days in this new model
+- While some values have changed, the directionality of each individual predictor is unaffected in this new model, except for gender. This new model now predicts male examiners to take 7 fewer days to process applications compared to female examiners
 
+- From interaction terms, we also know that increasing degree for male examiners increases expected processing time by under a day
+- Male examiners with higher eigenvector centrality have a significantly reduced processing time (226 days)
+- Male examiners with higher betweenness centrality have roughly the same expected processing time (0.0003 days added)
+- This would seem to imply that "importance" as measured by eigenvector centrality is more meaningful for male examiners than it is for female examiners
+
+Lets investigate that insight with some predictions:
 ```{r}
+baseline = predict(lm2, data.frame(Degree=0,Eigenvector=0,Betweenness=0,tenure_days=0,gender='female'))
+lowEigMale = predict(lm2, data.frame(Degree=0,Eigenvector=0,Betweenness=0,tenure_days=0,gender='male'))
+lowEigFemale = baseline
+highEigMale = predict(lm2, data.frame(Degree=0,Eigenvector=1,Betweenness=0,tenure_days=0,gender='male'))
+highEigFemale = predict(lm2, data.frame(Degree=0,Eigenvector=1,Betweenness=0,tenure_days=0,gender='female'))
 
+data.frame(baseline=baseline, unimportant_male=lowEigMale, important_male=highEigMale, unimportant_female=lowEigFemale, important_female=highEigFemale)
 
 ```
+This verifies our insight from earlier: Importance seems to mean more for men than for women. We can't deduce why that is from this model, but conjecture might say that since this is a male-dominated organization, men seem to benefit (at least in terms of reducing processing time) from advice-seeking more than women. 
+
+
+Disclaimer: While these models are providing theoretically meaningful insights, we should note that the proportion of variance in the data explained by both of these models is around 1%, ie they are not particularly good models as far as goodness-of-fit is concerned. 
