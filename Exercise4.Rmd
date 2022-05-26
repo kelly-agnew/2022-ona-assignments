@@ -285,7 +285,7 @@ Interpretations:
 - The "baseline" expectation for application processing time is a little under 600 days
 -     That would be for a female examiner who just started, 0 tenure days, and has never asked any advice
 
-- Everytime an examiner asks advice to a new colleague examiner (increase degree by 1), we expect processing time to decrease drastically (693 days)
+- Everytime an examiner asks advice to a new colleague examiner (increase degree by 1), we expect processing time to decrease slightly (.06 days)
 - Increasing an examiner's importance as measured by eigenvector centrality is expected to increase processing time by 139 days
 - Similarly, increasing an examiner's betweenness increases the processing time slightly (less than a day)
 

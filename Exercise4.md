@@ -58,7 +58,7 @@ gc()
 
     ##            used  (Mb) gc trigger  (Mb) max used  (Mb)
     ## Ncells  4706932 251.4    8237035 440.0  4726478 252.5
-    ## Vcells 49734129 379.5   95691975 730.1 80049688 610.8
+    ## Vcells 49734128 379.5   95691974 730.1 80049687 610.8
 
 ## Add race
 
@@ -101,7 +101,7 @@ gc()
 
     ##            used  (Mb) gc trigger  (Mb) max used  (Mb)
     ## Ncells  5046945 269.6    8237035 440.0  5686097 303.7
-    ## Vcells 53420688 407.6   95691975 730.1 94208227 718.8
+    ## Vcells 53420687 407.6   95691974 730.1 94208226 718.8
 
 ## Add tenure
 
@@ -133,8 +133,8 @@ gc()
 ```
 
     ##            used  (Mb) gc trigger   (Mb)  max used   (Mb)
-    ## Ncells  5060995 270.3   14706337  785.5  14706337  785.5
-    ## Vcells 65799448 502.1  137972444 1052.7 137857548 1051.8
+    ## Ncells  5060995 270.3   14706342  785.5  14706342  785.5
+    ## Vcells 65799447 502.1  137972441 1052.7 137857547 1051.8
 
 ## Add application duration
 
@@ -166,8 +166,8 @@ gc()
 ```
 
     ##            used  (Mb) gc trigger   (Mb)  max used   (Mb)
-    ## Ncells  5060996 270.3   14706337  785.5  14706337  785.5
-    ## Vcells 71854865 548.3  200782518 1531.9 200782518 1531.9
+    ## Ncells  5060996 270.3   14706342  785.5  14706342  785.5
+    ## Vcells 71854864 548.3  200782517 1531.9 200782517 1531.9
 
 Check completeness of the dataset to this point
 
@@ -370,7 +370,7 @@ Data summary
 
 | skim\_variable | n\_missing | complete\_rate | ordered | n\_unique | top\_counts               |
 |:---------------|-----------:|---------------:|:--------|----------:|:--------------------------|
-| gender         |          0 |              1 | FALSE   |         2 | mal: 1347561, fem: 661687 |
+| gender         |          0 |              1 | FALSE   |         2 | mal: 1347622, fem: 661626 |
 
 **Variable type: numeric**
 
@@ -380,8 +380,8 @@ Data summary
 | examiner\_art\_unit |          0 |              1 |  1928.59 |   304.48 |  1600 |  1671 |  1773 |  2171 |  2498 | ▇▂▁▂▂ |
 | appl\_status\_code  |          0 |              1 |   146.24 |    51.43 |     1 |   150 |   150 |   161 |   865 | ▇▁▁▁▁ |
 | tc                  |          0 |              1 |  1877.47 |   298.92 |  1600 |  1600 |  1700 |  2100 |  2400 | ▇▁▁▂▂ |
-| tenure\_days        |          0 |              1 |  5526.56 |  1101.30 |    27 |  4957 |  6078 |  6335 |  6518 | ▁▁▁▂▇ |
-| appl\_days          |          0 |              1 |  1359.98 |   998.54 |  -160 |   741 |  1120 |  1665 |  6332 | ▇▆▁▁▁ |
+| tenure\_days        |          0 |              1 |  5526.30 |  1101.36 |    27 |  4957 |  6078 |  6335 |  6518 | ▁▁▁▂▇ |
+| appl\_days          |          0 |              1 |  1359.99 |   998.48 |  -160 |   741 |  1120 |  1665 |  6332 | ▇▆▁▁▁ |
 
 With our remaining values imputed, we can proceed with constructing our
 advice network and calculating centralities
@@ -478,7 +478,7 @@ Data summary
 
 | skim\_variable | n\_missing | complete\_rate | ordered | n\_unique | top\_counts               |
 |:---------------|-----------:|---------------:|:--------|----------:|:--------------------------|
-| gender         |          0 |              1 | FALSE   |         2 | mal: 1347561, fem: 661687 |
+| gender         |          0 |              1 | FALSE   |         2 | mal: 1347622, fem: 661626 |
 
 **Variable type: numeric**
 
@@ -488,8 +488,8 @@ Data summary
 | examiner\_art\_unit |          0 |            1.0 |  1928.59 |   304.48 |  1600 |  1671 |  1773 |  2171 |  2498.00 | ▇▂▁▂▂ |
 | appl\_status\_code  |          0 |            1.0 |   146.24 |    51.43 |     1 |   150 |   150 |   161 |   865.00 | ▇▁▁▁▁ |
 | tc                  |          0 |            1.0 |  1877.47 |   298.92 |  1600 |  1600 |  1700 |  2100 |  2400.00 | ▇▁▁▂▂ |
-| tenure\_days        |          0 |            1.0 |  5526.56 |  1101.30 |    27 |  4957 |  6078 |  6335 |  6518.00 | ▁▁▁▂▇ |
-| appl\_days          |          0 |            1.0 |  1359.98 |   998.54 |  -160 |   741 |  1120 |  1665 |  6332.00 | ▇▆▁▁▁ |
+| tenure\_days        |          0 |            1.0 |  5526.30 |  1101.36 |    27 |  4957 |  6078 |  6335 |  6518.00 | ▁▁▁▂▇ |
+| appl\_days          |          0 |            1.0 |  1359.99 |   998.48 |  -160 |   741 |  1120 |  1665 |  6332.00 | ▇▆▁▁▁ |
 | Degree              |     812768 |            0.6 |    99.72 |   181.65 |     1 |    12 |    35 |   102 |  2844.00 | ▇▁▁▁▁ |
 | Eigenvector         |     812768 |            0.6 |     0.00 |     0.02 |     0 |     0 |     0 |     0 |     1.00 | ▇▁▁▁▁ |
 | Betweenness         |     812768 |            0.6 |   308.71 |  2528.32 |     0 |     0 |     0 |     1 | 62882.35 | ▇▁▁▁▁ |
@@ -509,8 +509,8 @@ gc()
 ```
 
     ##             used  (Mb) gc trigger   (Mb)  max used   (Mb)
-    ## Ncells   5159871 275.6   16423772  877.2  16423772  877.2
-    ## Vcells 120059781 916.0  333991101 2548.2 417480071 3185.2
+    ## Ncells   5159713 275.6   16423652  877.2  16423652  877.2
+    ## Vcells 120059369 916.0  333417652 2543.8 416765919 3179.7
 
 ## Modelling
 
@@ -528,22 +528,22 @@ summary(lm1)
     ## 
     ## Residuals:
     ##     Min      1Q  Median      3Q     Max 
-    ## -1682.7  -649.0  -239.6   342.9  4884.7 
+    ## -1682.2  -648.9  -239.4   343.0  4884.6 
     ## 
     ## Coefficients:
     ##               Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)  5.970e+02  7.653e+00  78.000  < 2e-16 ***
-    ## Degree      -6.931e-02  5.411e-03 -12.809  < 2e-16 ***
-    ## Eigenvector  1.394e+02  3.853e+01   3.617 0.000298 ***
-    ## Betweenness  8.068e-03  3.782e-04  21.331  < 2e-16 ***
-    ## tenure_days  1.347e-01  1.254e-03 107.412  < 2e-16 ***
-    ## gendermale   2.152e+01  2.028e+00  10.612  < 2e-16 ***
+    ## (Intercept)  5.948e+02  7.653e+00  77.727  < 2e-16 ***
+    ## Degree      -6.935e-02  5.410e-03 -12.818  < 2e-16 ***
+    ## Eigenvector  1.393e+02  3.853e+01   3.617 0.000298 ***
+    ## Betweenness  8.053e-03  3.782e-04  21.293  < 2e-16 ***
+    ## tenure_days  1.351e-01  1.254e-03 107.715  < 2e-16 ***
+    ## gendermale   2.155e+01  2.028e+00  10.623  < 2e-16 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Residual standard error: 1018 on 1196474 degrees of freedom
-    ## Multiple R-squared:   0.01,  Adjusted R-squared:  0.009997 
-    ## F-statistic:  2417 on 5 and 1196474 DF,  p-value: < 2.2e-16
+    ## Multiple R-squared:  0.01005,    Adjusted R-squared:  0.01005 
+    ## F-statistic:  2430 on 5 and 1196474 DF,  p-value: < 2.2e-16
 
 Interpretations: - The “baseline” expectation for application processing
 time is a little under 600 days - That would be for a female examiner
@@ -551,7 +551,7 @@ who just started, 0 tenure days, and has never asked any advice
 
 -   Everytime an examiner asks advice to a new colleague examiner
     (increase degree by 1), we expect processing time to decrease
-    drastically (693 days)
+    slightly (.06 days)
 
 -   Increasing an examiner’s importance as measured by eigenvector
     centrality is expected to increase processing time by 139 days
@@ -586,25 +586,25 @@ summary(lm2)
     ## 
     ## Residuals:
     ##     Min      1Q  Median      3Q     Max 
-    ## -1711.5  -650.4  -239.9   343.1  5038.7 
+    ## -1709.7  -650.4  -239.7   343.1  5043.0 
     ## 
     ## Coefficients:
     ##                          Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept)             6.230e+02  7.709e+00  80.815  < 2e-16 ***
-    ## Degree                 -2.637e-01  8.928e-03 -29.542  < 2e-16 ***
-    ## Eigenvector             2.223e+03  3.616e+02   6.148 7.86e-10 ***
-    ## Betweenness             6.601e-03  9.467e-04   6.972 3.12e-12 ***
-    ## tenure_days             1.334e-01  1.255e-03 106.332  < 2e-16 ***
-    ## gendermale             -7.900e+00  2.293e+00  -3.446  0.00057 ***
-    ## Degree:gendermale       3.066e-01  1.122e-02  27.336  < 2e-16 ***
-    ## Eigenvector:gendermale -2.283e+03  3.637e+02  -6.276 3.47e-10 ***
-    ## Betweenness:gendermale  5.713e-04  1.033e-03   0.553  0.58036    
+    ## (Intercept)             6.212e+02  7.708e+00  80.588  < 2e-16 ***
+    ## Degree                 -2.668e-01  8.928e-03 -29.884  < 2e-16 ***
+    ## Eigenvector             2.210e+03  3.615e+02   6.112 9.86e-10 ***
+    ## Betweenness             6.838e-03  9.443e-04   7.241 4.45e-13 ***
+    ## tenure_days             1.338e-01  1.255e-03 106.628  < 2e-16 ***
+    ## gendermale             -8.276e+00  2.293e+00  -3.609 0.000308 ***
+    ## Degree:gendermale       3.113e-01  1.122e-02  27.760  < 2e-16 ***
+    ## Eigenvector:gendermale -2.272e+03  3.637e+02  -6.248 4.17e-10 ***
+    ## Betweenness:gendermale  2.604e-04  1.031e-03   0.252 0.800678    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Residual standard error: 1018 on 1196471 degrees of freedom
-    ## Multiple R-squared:  0.01066,    Adjusted R-squared:  0.01065 
-    ## F-statistic:  1611 on 8 and 1196471 DF,  p-value: < 2.2e-16
+    ## Multiple R-squared:  0.01073,    Adjusted R-squared:  0.01072 
+    ## F-statistic:  1622 on 8 and 1196471 DF,  p-value: < 2.2e-16
 
 -   The baseline expectation has increased to 621 days in this new model
 
@@ -639,7 +639,7 @@ data.frame(baseline=baseline, unimportant_male=lowEigMale, important_male=highEi
 ```
 
     ##   baseline unimportant_male important_male unimportant_female important_female
-    ## 1 623.0119         615.1117       555.2637           623.0119         2845.851
+    ## 1 621.1665         612.8907       550.4801           621.1665         2830.717
 
 This verifies our insight from earlier: Importance seems to mean more
 for men than for women. We can’t deduce why that is from this model, but
