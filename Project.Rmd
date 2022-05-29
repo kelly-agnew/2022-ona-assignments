@@ -1,15 +1,11 @@
 ---
-title: "Exercise4"
+title: "Project"
 output: 
   pdf_document: 
     latex_engine: xelatex
 editor_options: 
   chunk_output_type: console
 ---
-```{r}
-warnings()
-```
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
 ```
