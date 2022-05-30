@@ -127,29 +127,24 @@ gc()
 
 ## Add application duration
 ```{r}
-# get all application filing dates
-application_dates <- applications %>% 
-  select(application_number, filing_date, appl_status_date) 
+# Since an application can only be issued or abandoned, one or the other will always be NA, therefore I will combine the columns
 
-# calculate start and end date from filing / status date respectively
-application_dates <- application_dates %>% 
-  mutate(start_date = ymd(filing_date), end_date = as_date(dmy_hms(appl_status_date)))
+applications$appl_end_date <- paste(applications$patent_issue_date, applications$abandon_date, sep=',')
 
-# for each application, get earliest and latest days, then interval between them as appl days
-application_dates <- application_dates %>% 
-  summarise(
-    application_number = application_number,
-    filed = start_date,
-    decision = end_date,
-    appl_days = interval(filed, decision) %/% days(1)
-  ) %>% 
-  filter(year(decision)<2018)
+# Then I will clean up the column by removing instances of commas and NA's
+applications$appl_end_date <- gsub('NA', "", as.character(applications$appl_end_date))
+applications$appl_end_date <- gsub(',', "", as.character(applications$appl_end_date))
 
-# merge and clean
-applications <- applications %>% 
-  left_join(application_dates, by = "application_number")
+# Ensure date format is consistent for both columns
+applications$appl_end_date <- as.Date(applications$appl_end_date, format="%Y-%m-%d")
+applications$filing_date <- as.Date(applications$filing_date, format="%Y-%m-%d")
 
-rm(application_dates)
+# Finding the difference in days between the application end date and the filing date
+applications$appl_proc_days <- as.numeric(difftime(applications$appl_end_date, applications$filing_date, units=c("days")))
+
+# Remove instances where the filing date happens after the issue or abandon dates (these must be mistakes as this shouldnt be possible
+applications <- applications %>% filter(appl_proc_days >=0 & !is.na(appl_proc_days))
+
 gc()
 ```
 
@@ -183,7 +178,6 @@ applications_subs = subset(applications, select=-c(examiner_name_middle,patent_n
 applications_subs = applications_subs %>% drop_na(examiner_id)
 
 ```
-
 
 ```{r}
 library(mice)
@@ -268,7 +262,6 @@ rm(examiner_aus)
 rm(egoNodes)
 rm(alterNodes)
 rm(nodes)
-rm(edges)
 rm(adviceNet)
 gc()
 
@@ -282,17 +275,17 @@ lm1 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender, data=appli
 summary(lm1)
 ```
 Interpretations:
-- The "baseline" expectation for application processing time is a little under 600 days
+- The "baseline" expectation for application processing time is a little under 800 days
 -     That would be for a female examiner who just started, 0 tenure days, and has never asked any advice
 
-- Everytime an examiner asks advice to a new colleague examiner (increase degree by 1), we expect processing time to decrease slightly (.06 days)
-- Increasing an examiner's importance as measured by eigenvector centrality is expected to increase processing time by 139 days
+- Everytime an examiner asks advice to a new colleague examiner (increase degree by 1), we expect processing time to increase slightly (.07 days)
+- Increasing an examiner's importance as measured by eigenvector centrality is expected to decrease processing time by 236 days
 - Similarly, increasing an examiner's betweenness increases the processing time slightly (less than a day)
 
 - It is important to note that the centrality measurements are all coupled, so in a vacuum these interpretations are valid, but in practice we could not increase an examiner's degree without also altering in some way their eigenvector and betweenness centralities
 
 - Longer tenured examiners take slightly longer to process applications with each additional day of tenure
-- Male examiners are expected to take roughly 22 days longer to process than women
+- Male examiners are expected to take roughly 2 days longer to process than women
 
 We can try to capture some of the more complex relationships among predictors by adding interactions
 ```{r}
@@ -302,12 +295,13 @@ summary(lm2)
 
 ```
 
-- The baseline expectation has increased to 621 days in this new model
-- While some values have changed, the directionality of each individual predictor is unaffected in this new model, except for gender. This new model now predicts male examiners to take 7 fewer days to process applications compared to female examiners
+- The baseline expectation has increased to 779 days in this new model
+- While some values have changed, the directionality of each individual predictor is unaffected in this new model, except for eigenvector centrality. This new model now predicts examiners with higher eigenvector importance to take almost year longer than those with lower importance.
 
 - From interaction terms, we also know that increasing degree for male examiners increases expected processing time by under a day
-- Male examiners with higher eigenvector centrality have a significantly reduced processing time (226 days)
-- Male examiners with higher betweenness centrality have roughly the same expected processing time (0.0003 days added)
+- Male examiners with higher betweenness centrality have roughly the same expected processing time (0.0005 days added)
+
+- From interaction terms, we see hat male examiners with higher eigenvector centrality see a massive reduction to their expected processing time (~600 days)
 - This would seem to imply that "importance" as measured by eigenvector centrality is more meaningful for male examiners than it is for female examiners
 
 Lets investigate that insight with some predictions:
@@ -325,3 +319,139 @@ This verifies our insight from earlier: Importance seems to mean more for men th
 
 
 Disclaimer: While these models are providing theoretically meaningful insights, we should note that the proportion of variance in the data explained by both of these models is around 1%, ie they are not particularly good models as far as goodness-of-fit is concerned. 
+
+
+## Workgroup-specific analysis
+After completing the general USPTO analysis, we have chosen to zoom in on two tech units: 1600 and 2100. We wanted to look at the STEM field and specifically the differences between life-science related patents (1600: Biotech and Organic Fields) and compute-science related patents (2100: Computer Architecture and Information Security)
+
+We will use workgroups 162 and 219 as the representative work groups for these two tech units, and randomly sample from the larger workgroup to get two approximately evenly sized workgroup data sets. 
+```{r}
+# first get work group for each examiner and limit to our two wgs of interest
+examiner_aus = distinct(subset(applications_full, select=c(examiner_art_unit, examiner_id)), examiner_id, .keep_all=TRUE)
+
+# note we want distinct examiners, not just distinct art_unit+examiner combos, since examiners can move between units. In this case we just take the first art unit an examiner worked in to simplify our analysis
+
+# we eventually want to make a network with nodes colored by work group, so lets add that indicator
+examiner_aus$wg = substr(examiner_aus$examiner_art_unit, 1,3)
+# restrict down to our selected art units to reduce merging complexity later on
+examiner_aus = examiner_aus[examiner_aus$wg==162 | examiner_aus$wg==219,]
+
+#examiner_aus %>% count(wg) # we have a few extra examiners in 162, so randomly sample down to 174 to get even sample sizes
+#examiner_aus = rbind(sample_n(examiner_aus[examiner_aus$wg==162,], 174), examiner_aus[examiner_aus$wg==219,])
+#examiner_aus %>% count(wg)
+
+
+
+# now we will merge in the aus df on applications 
+adviceNet = merge(x=edges, y=examiner_aus, by.x="ego_examiner_id", by.y="examiner_id", all.x=TRUE)
+adviceNet = adviceNet %>% rename(ego_art_unit=examiner_art_unit, ego_wg=wg)
+
+# drop edges which are missing ego or alter id
+adviceNet = drop_na(adviceNet)
+
+# now repeat for the alter examiners
+adviceNet = merge(x=adviceNet, y=examiner_aus, by.x="alter_examiner_id", by.y="examiner_id", all.x=TRUE)
+adviceNet = adviceNet %>% rename(alter_art_unit=examiner_art_unit, alter_wg=wg)
+adviceNet = drop_na(adviceNet)
+
+egoNodes = subset(adviceNet, select=c(ego_examiner_id,ego_art_unit, ego_wg)) %>%   rename(examiner_id=ego_examiner_id,art_unit=ego_art_unit,wg=ego_wg)
+alterNodes = subset(adviceNet, select=c(alter_examiner_id,alter_art_unit, alter_wg))%>% rename(examiner_id=alter_examiner_id,art_unit=alter_art_unit,wg=alter_wg)
+nodes = rbind(egoNodes, alterNodes)
+nodes = distinct(nodes) 
+
+# note we have fewer examiners than we started with due to some examiners never asking each other for advice
+
+
+# when we reduce to the list of distinct vertices, we actually have more than we should, since some examiners move amongst art units/wgs in this data subset
+#nodes = nodes %>% group_by(examiner_id) %>% summarise(examiner_id=first(examiner_id), art_unit=first(art_unit), wg=first(wg))
+
+```
+
+## Repeat centralities analysis
+
+### Construct network and calculate centralities
+```{r}
+adviceNet = graph_from_data_frame(d=adviceNet, vertices=nodes, directed=TRUE)
+# centralities
+Degree <- degree(adviceNet, v=V(adviceNet))
+Betweenness <- betweenness(adviceNet)
+Eigenvector <- evcent(adviceNet)$vector
+
+V(adviceNet)$size = Degree
+V(adviceNet)$eig = round(Eigenvector,2)
+V(adviceNet)$bet = round(Betweenness,2)
+V(adviceNet)$wg = nodes$wg
+
+```
+
+### Visualize
+```{r}
+ggraph(adviceNet, layout="kk") +
+  geom_edge_link()+
+  geom_node_point(aes(size=size, color=wg), show.legend=T)
+
+```
+We have a much sparser network here with many components instead of one or two large components. This is likely due to the restrictive size of our analysis, however it is still interesting to note the existence of these cliques, especially given that for some examiners we have 15-20 instances of advice asking. This shows a clear preference amongst the examiners in both 162 and 219 to stick with their local friend group when resolving issues.
+
+
+### Model the relationship between centralities and app_proc_time
+```{r}
+# first we'll need to merge the centrality measurements back into the imputed applications set
+centralities <- cbind(Degree, Eigenvector, Betweenness)
+centralities = round(centralities,2)
+centralities = data.frame(centralities)
+centralities <- cbind(examiner_id = rownames(centralities), centralities)
+rownames(centralities) <- 1:nrow(centralities)
+
+centralities = merge(centralities, subset(examiner_aus, select=-c(wg)), by="examiner_id") # need art unit for the final merge with applications
+
+# now merge on examiner_id
+applications_final = merge(x=applications_full, y=centralities, by=c("examiner_id","examiner_art_unit"), all.y=TRUE)
+applications_final %>% skim() # we will have quite a few NaNs popping back up for those examiners who didnt ask any advice
+# nothing to do there but remove the missing values
+applications_final = drop_na(applications_final)
+
+
+```
+
+### Modelling
+```{r}
+applications_final$wg = substr(applications_final$examiner_art_unit,1,3)
+applications_final$wg = as.factor(applications_final$wg)
+
+unique(applications_final$race) # Just Asian, White, or Hispanic examiners present in this dataset
+
+# for our first model we will once again cover no interactions and just look at base variables
+lm1 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender+race+wg, data=applications_final)
+summary(lm1)
+```
+Our work-group specific analysis gives much different results from before
+
+First, our baseline estimate for application time is 294 days
+
+In addition, we assume a further reduction in processing time of about 20 days with each additional advice-seeking
+
+One notable insight is that examiners from work group 219 are expected to take significantly longer in processing applications than for those in workgroup 162. This could potentially be due to the larger size of workgroup 162, allowing for lower on-average workload. It is also possible the discrepency is due to a simple difference in the nature/complexity of Biotech vs CS -oriented patents. 
+
+We also expect Hispanic examiners to complete applications faster than Asian examiners, and for White examiners to complete applications slower than both
+
+```{r}
+# add interactions
+lm2 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender+race+wg
+         +gender*race+gender*Degree+race*Degree+gender*tenure_days+race*tenure_days, data=applications_final)
+summary(lm2)
+```
+
+Our baseline estimate is unchanged, around 295 days.
+
+Examiners are expected to take slightly longer to process applications for each additional advice sought.
+
+Hispanic workers continue to process applications fastest, but now White examiners are expected to process faster than Asians as well.
+
+Workgroup 219 is still expected to process slower than 162.
+
+Among interaction terms, we expect male examiners to add about 20 days of processing time when seeking advice (inc degree by 1) compared to women
+
+White examiners who seek advice are expected to reduce their processing time by nearly 3 monthes compared to Asian examiners. 
+
+
