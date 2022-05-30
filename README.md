@@ -2,10 +2,17 @@
 Class assignments for McGill MMA ORGB672
 
 
-Current branch: Project
-Task: Working with USPTO patent examiner data
+Current branch: Exercise 5
 
+Play explainable ncase.me/crowds
 
-1. What are the organizational and social factors associated with the length of patent application prosecution?
-2. What is the role of network structure here?
-3. What is the role of race and ethnicity in the processes described in the questions above?
+Write 2 page summary explaining:
+
+- What is complex contagion and how it’s different from simple
+contagion (you may want to refer to readings – Centola)
+– What does complex contagion mean for diffusion of behaviors in
+organization
+– How can we use the threshold models to better manage
+  • Prosocial behavior in organizations
+  • Learning
+  • Toxic or unproductive behaviors
