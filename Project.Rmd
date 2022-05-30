@@ -253,6 +253,8 @@ centralities = data.frame(centralities)
 centralities <- cbind(examiner_id = rownames(centralities), centralities)
 rownames(centralities) <- 1:nrow(centralities)
 
+centralities %>% skim() # no missing values but very heavily skewed towards 0 for all centrality measures
+
 # now merge on examiner_id
 applications_final = merge(x=applications_full, y=centralities, by="examiner_id", all.x=TRUE)
 applications_final %>% skim() # we will have quite a few NaNs popping back up for those examiners who didnt ask any advice
@@ -275,6 +277,9 @@ gc()
 # we will make our first model as a simplistic model assuming no interactions among predictors
 lm1 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender, data=applications_final)
 summary(lm1)
+
+
+
 ```
 Interpretations:
 - The "baseline" expectation for application processing time is a little under 800 days
@@ -294,6 +299,14 @@ We can try to capture some of the more complex relationships among predictors by
 
 lm2 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender+Degree*gender+Eigenvector*gender+Betweenness*gender, data=applications_final)
 summary(lm2)
+
+
+stargazer(lm1, lm2, 
+          type="latex",
+          dep.var.labels = "Application Processing Time",
+          covariate.labels= c("Degree Centrality", "Eigenvector Centrality", "Betweenness Centrality", "Tenure (days)", "Male", "Hispanic", "White", "Work Group 219", "Degree:Male", "Eigenvector:Male", "Betweenness:Male"),
+          digits = 2)
+
 
 ```
 
@@ -442,6 +455,13 @@ We also expect Hispanic examiners to complete applications faster than Asian exa
 lm2 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender+race+wg
          +gender*race+gender*Degree+race*Degree+gender*tenure_days+race*tenure_days, data=applications_final)
 summary(lm2)
+
+stargazer(lm1, lm2, 
+          type="latex",
+          dep.var.labels = "Application Processing Time",
+          covariate.labels= c("Degree Centrality", "Eigenvector Centrality", "Betweenness Centrality", "Tenure (days)", "Male", "Hispanic", "White", "Work Group 219","" ,"Degree:Male", "Eigenvector:Male", "Betweenness:Male"),
+          digits = 2)
+
 ```
 
 Our baseline estimate is unchanged, around 295 days.
