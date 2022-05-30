@@ -62,3 +62,22 @@ people pass beliefs and behaviors in a society.
 Connections: Too few or too many make ideas hard to spread. A
 ‘sweet-spot’ mixture is what allows contagions to spread and manifest in
 a network.
+
+## Questions
+
+– How can we use the threshold models to better manage • Prosocial
+behavior in organizations • Learning • Toxic or unproductive behaviors
+
+Understanding the network structure of an organization can be very
+helpful in tracking the spread of misinformation within it. For the
+USPTO for example, we probably expect a high bonding social capitol
+within art units, and perhaps a high bridging social capitol within work
+groups and tech centres. It may also be the case that there is a
+relatively low bridging social capitol between different tech centres
+(we observed as such during previous exercises when visualizing networks
+containing work groups from different tech centres - not many
+connections between examiners in different centres). This may not
+normally be an issue, but for example if we are finding that a new
+company policy isn’t being picked up across the entire organization, we
+could find out which tech centres are resistant to the idea and try to
+increase their bridging with the more compliant tech centres.
