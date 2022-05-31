@@ -167,7 +167,7 @@ We will use R's mice package which performs multiple imputation under the assump
 Before we do this, we have to remove some variables which may be missing not-at-random, or are deemed to be unhelpful for the later modelling stage. 
 
 ```{r}
-applications_subs = subset(applications, select=-c(examiner_name_middle,patent_number, appl_status_date,patent_issue_date,abandon_date,earliest_date,latest_date, filing_date, filed, decision))
+applications_subs = subset(applications, select=-c(examiner_name_middle,patent_number, appl_status_date,patent_issue_date,abandon_date,earliest_date,latest_date, filing_date))
 # Removal explanations:
 
 # some people might not have a middle name by choice (ie it was not just randomly forgotten to be entered into the data base)
@@ -275,63 +275,52 @@ gc()
 ```{r}
 # we wish to model the relationship between various centralities and appl_days
 # we will make our first model as a simplistic model assuming no interactions among predictors
-lm1 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender, data=applications_final)
+lm1 = lm(appl_proc_days~Degree+Eigenvector+Betweenness+tenure_days+gender+race, data=applications_final)
 summary(lm1)
 
 
 
 ```
 Interpretations:
-- The "baseline" expectation for application processing time is a little under 800 days
--     That would be for a female examiner who just started, 0 tenure days, and has never asked any advice
+- The "baseline" expectation for application processing time is 1500
+-     That would be for a female asian examiner who just started, 0 tenure days, and has never asked any advice
 
 - Everytime an examiner asks advice to a new colleague examiner (increase degree by 1), we expect processing time to increase slightly (.07 days)
-- Increasing an examiner's importance as measured by eigenvector centrality is expected to decrease processing time by 236 days
-- Similarly, increasing an examiner's betweenness increases the processing time slightly (less than a day)
+- Increasing an examiner's importance as measured by eigenvector centrality is expected to decrease processing time by 160 days
+- Increasing an examiner's betweenness increases the processing time slightly (less than a day)
 
 - It is important to note that the centrality measurements are all coupled, so in a vacuum these interpretations are valid, but in practice we could not increase an examiner's degree without also altering in some way their eigenvector and betweenness centralities
 
-- Longer tenured examiners take slightly longer to process applications with each additional day of tenure
-- Male examiners are expected to take roughly 2 days longer to process than women
+- Longer tenured examiners process applications a bit faster with each additional day of tenure
+- Male examiners are expected to take roughly 2 weeks longer than their female counterparts
+- Black, Hispanic, and Other-raced examiners all take longer to process than asian
+- White examiners process applications much faster than Asian, by about 60 days
+
+- Important to note the out goodness of fit is very low, so these insights should be taken with a grain of salt
 
 We can try to capture some of the more complex relationships among predictors by adding interactions
 ```{r}
 
-lm2 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender+Degree*gender+Eigenvector*gender+Betweenness*gender, data=applications_final)
+lm2 = lm(appl_proc_days~Degree+Eigenvector+Betweenness+tenure_days+gender+race+Degree*gender+Eigenvector*gender+Betweenness*gender+Degree*race+Eigenvector*race+Betweenness*race, data=applications_final)
 summary(lm2)
 
 
-stargazer(lm1, lm2, 
-          type="latex",
-          dep.var.labels = "Application Processing Time",
-          covariate.labels= c("Degree Centrality", "Eigenvector Centrality", "Betweenness Centrality", "Tenure (days)", "Male", "Hispanic", "White", "Work Group 219", "Degree:Male", "Eigenvector:Male", "Betweenness:Male"),
-          digits = 2)
+# stargazer(lm1, lm2, 
+#           type="latex",
+#           dep.var.labels = "Application Processing Time",
+#           covariate.labels= c("Degree Centrality", "Eigenvector Centrality", "Betweenness Centrality", "Tenure (days)", "Male", "Black", "Hispanic", "Other", "White", "Degree:Male", "Eigenvector:Male", "Betweenness:Male","Degree:Black","Degree:Hispanic","Degree:Other","Degree:White","Eigenvector:Black","Eigenvector:Hispanic","Eigenvector:Other","Eigenvector:White","Betweenness:Black","Betweenness:Hispanic","Betweenness:Other","Betweenness:White"),
+#           digits = 2)
 
 
 ```
 
-- The baseline expectation has increased to 779 days in this new model
-- While some values have changed, the directionality of each individual predictor is unaffected in this new model, except for eigenvector centrality. This new model now predicts examiners with higher eigenvector importance to take almost year longer than those with lower importance.
+- The baseline expectation is roughly the same as it was before, around 1500 days
 
-- From interaction terms, we also know that increasing degree for male examiners increases expected processing time by under a day
-- Male examiners with higher betweenness centrality have roughly the same expected processing time (0.0005 days added)
+- Increasing degree or betweenness centrality (in a vaccuum) is expected to increase processing time, while increasing eigenvector centrality decreases processing time quite significantly (4500 days)
+- This model expects Black examiners to process faster than asian examiners, and every other race to be slower
 
-- From interaction terms, we see hat male examiners with higher eigenvector centrality see a massive reduction to their expected processing time (~600 days)
-- This would seem to imply that "importance" as measured by eigenvector centrality is more meaningful for male examiners than it is for female examiners
-
-Lets investigate that insight with some predictions:
-```{r}
-baseline = predict(lm2, data.frame(Degree=0,Eigenvector=0,Betweenness=0,tenure_days=0,gender='female'))
-lowEigMale = predict(lm2, data.frame(Degree=0,Eigenvector=0,Betweenness=0,tenure_days=0,gender='male'))
-lowEigFemale = baseline
-highEigMale = predict(lm2, data.frame(Degree=0,Eigenvector=1,Betweenness=0,tenure_days=0,gender='male'))
-highEigFemale = predict(lm2, data.frame(Degree=0,Eigenvector=1,Betweenness=0,tenure_days=0,gender='female'))
-
-data.frame(baseline=baseline, unimportant_male=lowEigMale, important_male=highEigMale, unimportant_female=lowEigFemale, important_female=highEigFemale)
-
-```
-This verifies our insight from earlier: Importance seems to mean more for men than for women. We can't deduce why that is from this model, but conjecture might say that since this is a male-dominated organization, men seem to benefit (at least in terms of reducing processing time) from advice-seeking more than women. 
-
+- From interaction terms, we also know that increasing degree for male examiners decreases processing time significantly
+- Male examiners with higher betweenness centrality have roughly the same expected processing time (0.005 days added)
 
 Disclaimer: While these models are providing theoretically meaningful insights, we should note that the proportion of variance in the data explained by both of these models is around 1%, ie they are not particularly good models as far as goodness-of-fit is concerned. 
 
@@ -436,44 +425,69 @@ applications_final$wg = as.factor(applications_final$wg)
 
 unique(applications_final$race) # Just Asian, White, or Hispanic examiners present in this dataset
 
+
+
 # for our first model we will once again cover no interactions and just look at base variables
-lm1 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender+race+wg, data=applications_final)
+# also, we have dropped betweenness because it is 0 for all examiners, probably due to the lack of connectivity between clusters
+lm1 = lm(appl_proc_days~Degree+Eigenvector+tenure_days+gender+race+wg, data=applications_final)
 summary(lm1)
 ```
 Our work-group specific analysis gives much different results from before
 
-First, our baseline estimate for application time is 294 days
+First, our baseline estimate (Female, Asian, 0 tenure days and no prior connections) for application time is 1038 days
 
-In addition, we assume a further reduction in processing time of about 20 days with each additional advice-seeking
+In addition, we assume a further increase in processing time for each advice-sought by about 20 days
 
 One notable insight is that examiners from work group 219 are expected to take significantly longer in processing applications than for those in workgroup 162. This could potentially be due to the larger size of workgroup 162, allowing for lower on-average workload. It is also possible the discrepency is due to a simple difference in the nature/complexity of Biotech vs CS -oriented patents. 
 
-We also expect Hispanic examiners to complete applications faster than Asian examiners, and for White examiners to complete applications slower than both
+We also expect Hispanic and White examiners to complete applications faster than Asian examiners.
 
+Based on this simplistic model, we would naively conclude that the USPTO should focus on hiring more Hispanic and White female examiners, as we expect them to process applications much faster than all male examiners, and especially faster than male asian examiners.
+
+Of course, we know this model is missing the whole picture and we ought to increase its complexity before making conclusions...
 ```{r}
 # add interactions
-lm2 = lm(appl_days~Degree+Eigenvector+Betweenness+tenure_days+gender+race+wg
-         +gender*race+gender*Degree+race*Degree+gender*tenure_days+race*tenure_days, data=applications_final)
+lm2 = lm(appl_proc_days~Degree+Eigenvector+tenure_days+gender+race+wg
+         +gender*Degree+race*Degree+gender*Eigenvector+race*Eigenvector, data=applications_final)
 summary(lm2)
 
+# several interactions are omitted due to insufficient data/not statistically significant results:
+# gender*race, all combinations are not statistically significant, probably due to having only 38 unique examiners in the dataset
+# tenure*gender
+# tenure*race
 stargazer(lm1, lm2, 
           type="latex",
           dep.var.labels = "Application Processing Time",
-          covariate.labels= c("Degree Centrality", "Eigenvector Centrality", "Betweenness Centrality", "Tenure (days)", "Male", "Hispanic", "White", "Work Group 219","" ,"Degree:Male", "Eigenvector:Male", "Betweenness:Male"),
-          digits = 2)
+          covariate.labels= c("Degree Centrality", "Eigenvector Centrality", "Tenure (days)", "Male", "Hispanic", "White", "Work Group 219", "Degree:Male","Degree:Hispanic","Degree:White","Eigenvector:Male","Eigenvector:Hispanic","Eigenvector:White"),
+          digits = 2,
+          font.size="LARGE")
 
 ```
 
-Our baseline estimate is unchanged, around 295 days.
+Our baseline estimate is higher, around 1400 days.
 
-Examiners are expected to take slightly longer to process applications for each additional advice sought.
+Examiners are now expected to take less processing time with each additional advice-seeking, by 106 days.
+Eigenvector centrality has a negative (longer) impact on processing time by 2117 days.(?)
+With each additional day of tenure, female examiners shave about 0.05 days off their expected processing time.
+Male examiners are expected to take about 110 days longer than their female counterparts.
+Both hispanic and White examiners are expected to process faster than their asian colleagues.
+As before, examiners from workgroup 219 appear to require much longer to process applications.
 
-Hispanic workers continue to process applications fastest, but now White examiners are expected to process faster than Asians as well.
+Among interaction terms, we expect male examiners to remove about 53 days of processing time when seeking advice (inc degree by 1) compared to women. 
+- This would seem to imply that "importance" as measured by degree centrality is more meaningful for male examiners than it is for female examiners
 
-Workgroup 219 is still expected to process slower than 162.
+Lets investigate that insight with some predictions:
+```{r}
+baseline = predict(lm2, data.frame(Degree=0,Eigenvector=0,tenure_days=0,gender='female',race='Asian',wg='162'))
+lowDegMale = predict(lm2, data.frame(Degree=0,Eigenvector=0,tenure_days=0,gender='male',race='Asian',wg='162'))
+lowDegFemale = baseline
+highDegMale = predict(lm2, data.frame(Degree=5,Eigenvector=0,tenure_days=0,gender='male',race='Asian',wg='162'))
+highDegFemale = predict(lm2, data.frame(Degree=5,Eigenvector=0,tenure_days=0,gender='female', race='Asian',wg='162'))
 
-Among interaction terms, we expect male examiners to add about 20 days of processing time when seeking advice (inc degree by 1) compared to women
+data.frame(baseline=baseline, unimportant_male=lowDegMale, important_male=highDegMale, unimportant_female=lowDegFemale, important_female=highDegFemale)
 
-White examiners who seek advice are expected to reduce their processing time by nearly 3 monthes compared to Asian examiners. 
+```
 
+This affirms what we saw when examining the model summary: men seem to gain more benefit (in terms of reducing processing time) from advice seeking than women. We can't deduce why that is from this model, but conjecture might say that since this is a male-dominated organization, men seem to benefit (at least in terms of reducing processing time) from advice-seeking more than women.  
 
+We can additionally see from the model summary that 
