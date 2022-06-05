@@ -1,8 +1,7 @@
 ---
 title: "Project"
 output: 
-  pdf_document: 
-    latex_engine: xelatex
+  github_document
 editor_options: 
   chunk_output_type: console
 ---
@@ -27,6 +26,10 @@ library(grid)
 
 library(stargazer)
 ```
+------------------------------------------------------------------
+------------------------------------------------------------------
+# Data cleaning & Preprocessing section
+
 
 ## Data
 ```{r}
@@ -195,10 +198,294 @@ rm(applications_subs)
 
 applications_full %>% skim() # all done
 ```
+With our remaining values imputed, we can proceed with demographics & constructing our advice network and calculating centralities
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
-With our remaining values imputed, we can proceed with constructing our advice network and calculating centralities
+# Demographics Insights
 
-## Advice networks
+```{r isolate-WG}
+# filter for unique examiners only 
+final <- distinct(applications_full, examiner_id, .keep_all = TRUE)
+
+# isolate for specific workgroups
+final$wg = substr(final$examiner_art_unit, 1,3)
+
+# create dataframes consisting of our specific workgroups 
+WG_219 <- final[final$wg == 219, ] 
+WG_162 <- final[final$wg == 162, ]
+```
+
+## Race
+
+### Summarize Race Distribution by Working Group
+
+```{r race-stats}
+# obtain raw percentage of race by working group
+WG219_Race <- WG_219 %>%
+  group_by(race) %>%
+  summarise(WorkGroup = "Work Group 219", count = n()) %>%
+  mutate(percentage  = round(count / sum(count), 2)) %>% 
+  arrange(desc(percentage))
+head(WG219_Race)
+
+WG162_Race <- WG_162 %>%
+  group_by(race) %>%
+  summarise(WorkGroup = "Work Group 162", count = n()) %>%
+  mutate(percentage = round(count / sum(count), 2)) %>% 
+  arrange(desc(percentage))
+head(WG162_Race)
+
+# join both together
+comps_perc <- rbind(WG219_Race, WG162_Race)
+```
+
+### Visualization of Race by Working Group
+
+```{r race-visualization}
+# visualization of race by working group as a function of percentage
+ggplot(comps_perc, aes(x=race, y=percentage, fill=WorkGroup)) + 
+  geom_bar(stat="identity", position="dodge") + 
+  # specify the color palette
+  scale_fill_manual(values=c("#1a3260","#969fa7")) + 
+  labs(title = "Race by Working Group", 
+       subtitle= "Overview of Race Distribution by Organic Chemistry (162) and Interprocess Communication and Software Development (219) Working Groups",
+       caption = "Data source: United States Patent and Trademark Office") +
+  ylab("Percentage of Examiners") + 
+  xlab("Race") + 
+  # adjust title + subtitle formatting 
+  theme(plot.title = element_text(color = "#1a3260", size = 12, face = "bold", hjust = 0.5), 
+        plot.subtitle = element_text(color = "#585858", size = 8, hjust =0.5),
+        plot.caption = element_text(color = "#585858", size = 6, face = "italic", hjust =0.9)) +
+  # add labels
+  geom_text(aes(label=paste("(Cnt:",count,", Pct:",percentage,")")),
+            colour = "white", size = 2,
+            vjust = 1.5, position = position_dodge(.9))
+```
+
+## Gender
+
+### Summarize Gender Distribution by Working Group
+
+```{r gender-stats}
+# obtain raw count and percentage of gender by working group
+WG219_Gender <- WG_219 %>%
+  group_by(gender) %>%
+  summarise(WorkGroup = "Work Group 219", count = n()) %>%
+  mutate(percentage = round(count / sum(count), 2)) %>% 
+  arrange(desc(percentage))
+head(WG219_Gender)
+
+WG162_Gender <- WG_162 %>%
+  group_by(gender) %>%
+  summarise(WorkGroup = "Work Group 162", count = n()) %>%
+  mutate(percentage = round(count / sum(count), 2)) %>% 
+  arrange(desc(percentage))
+head(WG162_Gender)
+
+# join both together
+comps_perc <- rbind(WG219_Gender, WG162_Gender)
+```
+
+### Visualization of Gender by Working Group
+
+```{r gender-visualization}
+# visualization of race by working group as a function of percentage
+ggplot(comps_perc, aes(x=gender, y=percentage, fill=WorkGroup)) + 
+  geom_bar(stat="identity", position="dodge") +
+  # specify the color palette 
+  scale_fill_manual(values=c("#1a3260","#969fa7")) + 
+  labs(title = "Gender by Working Group", 
+       subtitle= "Overview of Gender Distribution by Organic Chemistry (162) and Interprocess Communication and Software Development (219) Working Groups",
+       caption = "Data source: United States Patent and Trademark Office") +
+  ylab("Percentage of Examiners") + 
+  xlab("Gender") + 
+  # adjust title + subtitle formatting 
+  theme(plot.title = element_text(color = "#1a3260", size = 12, face = "bold", hjust = 0.5), 
+        plot.subtitle = element_text(color = "#585858", size = 8, hjust =0.5),
+        plot.caption = element_text(color = "#585858", size = 6, face = "italic", hjust =0.9)) +
+  # add labels
+  geom_text(aes(label=paste("(Cnt:",count,", Pct:",percentage,")")),
+            colour = "white", size = 2,
+            vjust = 1.5, position = position_dodge(.9))
+```
+
+## Tenure
+
+## Summarize Examiner Tenure by Race and Gender
+
+```{r tenure-race-gender}
+# generate new variable which looks at average tenure days by race and gender
+WG219_GenderRace <- WG_219 %>%
+   group_by(gender, race) %>% 
+   summarise(tenure_days = mean(tenure_days), count = n())
+  
+WG162_GenderRace <- WG_162 %>%
+   group_by(gender, race) %>% 
+   summarise(tenure_days = mean(tenure_days), count = n()) 
+
+# generate a new variable to describe the workgroups
+WG219_GenderRace$WorkGroup <- "Work Group 219"
+WG162_GenderRace$WorkGroup <- "Work Group 162"
+
+# rename gender for more clear visualization
+WG219_GenderRace <- WG219_GenderRace %>%
+    mutate(gender = recode(gender, female = "FM", male = "ML"))
+WG162_GenderRace <- WG162_GenderRace %>%
+    mutate(gender = recode(gender, female = "FM", male = "ML"))
+
+# create new variable that is a combination of both 
+WG219_GenderRace$gender_race <- paste(WG219_GenderRace$gender, WG219_GenderRace$race)
+WG162_GenderRace$gender_race <- paste(WG162_GenderRace$gender, WG162_GenderRace$race)
+
+# round the average tenure days 
+WG219_GenderRace$tenure_days <- round(WG219_GenderRace$tenure_days,digit=2) 
+WG162_GenderRace$tenure_days <- round(WG162_GenderRace$tenure_days,digit=2) 
+
+# add together
+aggregate <- rbind(WG219_GenderRace, WG162_GenderRace)
+```
+
+### Visualization of Tenure by Race and Gender
+
+```{r tenure-race-gender-visualization}
+ggplot(aggregate, aes(x=gender_race, y=tenure_days, fill=WorkGroup)) + 
+  geom_bar(stat="identity", position="dodge") + 
+  # specify the color palette
+  scale_fill_manual(values=c("#1a3260","#969fa7")) + 
+  labs(title = "Average Tenure for Gender + Race by Working Group", 
+       subtitle= "Overview of Average tenure days by Gender and Race for Organic Chemistry (162) and Interprocess Communication and Software Development (219) Working Groups",
+       caption = "Data source: United States Patent and Trademark Office") +
+  ylab("Average Days of Tenure of Examiners") + 
+  xlab("Gender + Race") + 
+  # adjust title + subtitle formatting 
+  theme(plot.title = element_text(color = "#1a3260", size = 12, face = "bold", hjust = 0.5), 
+        plot.subtitle = element_text(color = "#585858", size = 8, hjust =0.5),
+        plot.caption = element_text(color = "#585858", size = 6, face = "italic", hjust =0.9)) +
+  # add labels
+  geom_text(aes(label=paste("(",count,",",tenure_days,")")),
+            colour = "white", size = 2,
+            vjust = 1.5, position = position_dodge(.9))
+```
+
+## Processing Days 
+
+## Summarize Examiner Processing Days by Race and Gender
+
+```{r processing-race-gender}
+# generate new variable which looks at average processing days by race and gender
+WG219_GenderRace <- WG_219 %>%
+   group_by(gender, race) %>% 
+   summarise_at(vars("appl_proc_days"), mean)
+WG162_GenderRace <- WG_162 %>%
+   group_by(gender, race) %>% 
+   summarise_at(vars("appl_proc_days"), mean)
+
+# generate a new variable to describe the workgroups
+WG219_GenderRace$WorkGroup <- "Work Group 212"
+WG162_GenderRace$WorkGroup <- "Work Group 162"
+
+# rename gender for more clear visualization
+WG219_GenderRace <- WG219_GenderRace %>%
+    mutate(gender = recode(gender, female = "FM", male = "ML"))
+WG162_GenderRace <- WG162_GenderRace %>%
+    mutate(gender = recode(gender, female = "FM", male = "ML"))
+
+# create new variable that is a combination of both 
+WG219_GenderRace$gender_race <- paste(WG219_GenderRace$gender, WG219_GenderRace$race)
+WG162_GenderRace$gender_race <- paste(WG162_GenderRace$gender, WG162_GenderRace$race)
+
+# round the average tenure days 
+WG219_GenderRace$appl_proc_days <- round(WG219_GenderRace$appl_proc_days,digit=2) 
+WG162_GenderRace$appl_proc_days <- round(WG162_GenderRace$appl_proc_days,digit=2) 
+
+# add together
+aggregate <- rbind(WG219_GenderRace, WG162_GenderRace)
+```
+
+### Visualization of Processing by Working Group, Race and Gender
+
+```{r processsing-race-gender-visualization}
+aggregate <- rbind(WG219_GenderRace, WG162_GenderRace)
+ggplot(aggregate, aes(x=gender_race, y=appl_proc_days, fill=WorkGroup)) + geom_bar(stat="identity", position="dodge") +
+  # specify color
+  scale_fill_manual(values=c("#1a3260","#969fa7")) + 
+  labs(title = "Average Processing Days for Patent Applications by Race and Gender",
+       subtitle= "Overview of Average Processing Days for Patent Applications by Gender and Race for 
+       Organic Chemistry (162) and Interprocess Communication and Software Development (219) Working Groups",
+       caption = "Data source: United States Patent and Trademark Office") +
+  ylab("Average Processing days for Patent Applications") + 
+  xlab("Gender + Race") + 
+  # adjust title + subtitle formatting 
+  theme(plot.title = element_text(color = "#1a3260", size = 12, face = "bold", hjust = 0.5), 
+        plot.subtitle = element_text(color = "#585858", size = 8, hjust =0.5),
+        plot.caption = element_text(color = "#585858", size = 6, face = "italic", hjust =0.9)) +
+  # add labels
+  geom_text(aes(label = appl_proc_days),
+            colour = "white", size = 2,
+            vjust = 1.5, position = position_dodge(.9))
+```
+
+## Processing Days Overview 
+
+```{r processing-violin}
+# isolate for working groups 
+combined <- subset(final, wg==219 | wg==162)
+
+# violin plot
+ggplot(combined, aes(wg, appl_proc_days)) +
+  geom_violin() + 
+  geom_boxplot(width = .1, fill = "#969fa7", outlier.shape = NA) +
+  stat_summary(fun.y = "median", geom = "point", col = "#1a3260") +
+  labs(title = "Violin Plot of Processing Days for Patent Applications",
+       subtitle= "Distribution and Density of Processing Days for Patent Applications for 
+       Organic Chemistry (162) and Interprocess Communication and Software Development (219) Working Groups",
+       caption = "Data source: United States Patent and Trademark Office") +
+  ylab("Processing Days for Patent Applications") + 
+  xlab("Work Group") + 
+  # adjust title + subtitle formatting 
+  theme(plot.title = element_text(color = "#1a3260", size = 12, face = "bold", hjust = 0.5), 
+        plot.subtitle = element_text(color = "#585858", size = 8, hjust =0.5),
+        plot.caption = element_text(color = "#585858", size = 6, face = "italic", hjust =0.9))
+```
+
+## Processing Days Overview - Boxplot 
+
+```{r processing-box}
+# define function to return label for facet_wrap WG titles
+label_facet <- function(original_var, custom_name){
+  lev <- levels(as.factor(original_var))
+  lab <- paste0(custom_name, ": ", lev)
+  names(lab) <- lev
+  return(lab)}
+
+# box plot
+combined %>%
+  ggplot(aes(race, appl_proc_days, color = gender)) +
+  geom_boxplot(width = .4, fill = "#36454F", position = position_dodge(width = 0.9)) +
+  scale_fill_manual(values = c("#36454F","#969fa7")) +
+  scale_color_manual(values = c("#969fa7","#1a3260")) +
+  geom_jitter(width=0.15, alpha=0.5) +
+  labs(title = "Boxplot of Processing Days for Patent Applications",
+       subtitle= "Boxplot of Processing Days by Gender and Race for Patent Applications for 
+       Organic Chemistry (162) and Interprocess Communication and Software Development (219) Working Groups",
+       caption = "Data source: United States Patent and Trademark Office") +
+  ylab("Processing Days for Patent Applications") + 
+  xlab("Race") + 
+  # adjust title + subtitle formatting 
+  theme(plot.title = element_text(color = "#1a3260", size = 12, face = "bold", hjust = 0.5), 
+        plot.subtitle = element_text(color = "#585858", size = 8, hjust =0.5),
+        plot.caption = element_text(color = "#585858", size = 6, face = "italic", hjust =0.9)) +
+  facet_wrap( ~ wg, labeller = labeller(wg = label_facet(combined$wg, "Work Group")))
+```
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+# Advice Networks
+
 ```{r}
 # first get work group for each examiner and limit to our two wgs of interest
 examiner_aus = distinct(subset(applications_full, select=c(examiner_art_unit, examiner_id)))
@@ -270,8 +557,12 @@ rm(adviceNet)
 gc()
 
 ```
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
-## Modelling
+# Modelling
+
 ```{r}
 # we wish to model the relationship between various centralities and appl_days
 # we will make our first model as a simplistic model assuming no interactions among predictors
@@ -304,14 +595,6 @@ We can try to capture some of the more complex relationships among predictors by
 lm2 = lm(appl_proc_days~Degree+Eigenvector+Betweenness+tenure_days+gender+race+Degree*gender+Eigenvector*gender+Betweenness*gender+Degree*race+Eigenvector*race+Betweenness*race, data=applications_final)
 summary(lm2)
 
-
-# stargazer(lm1, lm2, 
-#           type="latex",
-#           dep.var.labels = "Application Processing Time",
-#           covariate.labels= c("Degree Centrality", "Eigenvector Centrality", "Betweenness Centrality", "Tenure (days)", "Male", "Black", "Hispanic", "Other", "White", "Degree:Male", "Eigenvector:Male", "Betweenness:Male","Degree:Black","Degree:Hispanic","Degree:Other","Degree:White","Eigenvector:Black","Eigenvector:Hispanic","Eigenvector:Other","Eigenvector:White","Betweenness:Black","Betweenness:Hispanic","Betweenness:Other","Betweenness:White"),
-#           digits = 2)
-
-
 ```
 
 - The baseline expectation is roughly the same as it was before, around 1500 days
@@ -331,7 +614,7 @@ After completing the general USPTO analysis, we have chosen to zoom in on two te
 We will use workgroups 162 and 219 as the representative work groups for these two tech units, and randomly sample from the larger workgroup to get two approximately evenly sized workgroup data sets. 
 ```{r}
 # first get work group for each examiner and limit to our two wgs of interest
-examiner_aus = distinct(subset(applications_full, select=c(examiner_art_unit, examiner_id)), examiner_id, .keep_all=TRUE)
+examiner_aus = distinct(subset(applications_full, select=c(examiner_art_unit, examiner_id,gender)), examiner_id, .keep_all=TRUE)
 
 # note we want distinct examiners, not just distinct art_unit+examiner combos, since examiners can move between units. In this case we just take the first art unit an examiner worked in to simplify our analysis
 
@@ -340,26 +623,20 @@ examiner_aus$wg = substr(examiner_aus$examiner_art_unit, 1,3)
 # restrict down to our selected art units to reduce merging complexity later on
 examiner_aus = examiner_aus[examiner_aus$wg==162 | examiner_aus$wg==219,]
 
-#examiner_aus %>% count(wg) # we have a few extra examiners in 162, so randomly sample down to 174 to get even sample sizes
-#examiner_aus = rbind(sample_n(examiner_aus[examiner_aus$wg==162,], 174), examiner_aus[examiner_aus$wg==219,])
-#examiner_aus %>% count(wg)
-
-
-
 # now we will merge in the aus df on applications 
 adviceNet = merge(x=edges, y=examiner_aus, by.x="ego_examiner_id", by.y="examiner_id", all.x=TRUE)
-adviceNet = adviceNet %>% rename(ego_art_unit=examiner_art_unit, ego_wg=wg)
+adviceNet = adviceNet %>% rename(ego_art_unit=examiner_art_unit, ego_wg=wg, ego_gender=gender)
 
 # drop edges which are missing ego or alter id
 adviceNet = drop_na(adviceNet)
 
 # now repeat for the alter examiners
 adviceNet = merge(x=adviceNet, y=examiner_aus, by.x="alter_examiner_id", by.y="examiner_id", all.x=TRUE)
-adviceNet = adviceNet %>% rename(alter_art_unit=examiner_art_unit, alter_wg=wg)
+adviceNet = adviceNet %>% rename(alter_art_unit=examiner_art_unit, alter_wg=wg, alter_gender=gender)
 adviceNet = drop_na(adviceNet)
 
-egoNodes = subset(adviceNet, select=c(ego_examiner_id,ego_art_unit, ego_wg)) %>%   rename(examiner_id=ego_examiner_id,art_unit=ego_art_unit,wg=ego_wg)
-alterNodes = subset(adviceNet, select=c(alter_examiner_id,alter_art_unit, alter_wg))%>% rename(examiner_id=alter_examiner_id,art_unit=alter_art_unit,wg=alter_wg)
+egoNodes = subset(adviceNet, select=c(ego_examiner_id,ego_art_unit, ego_wg, ego_gender)) %>%   rename(examiner_id=ego_examiner_id,art_unit=ego_art_unit,wg=ego_wg, gender=ego_gender)
+alterNodes = subset(adviceNet, select=c(alter_examiner_id,alter_art_unit, alter_wg, alter_gender))%>% rename(examiner_id=alter_examiner_id,art_unit=alter_art_unit,wg=alter_wg, gender=alter_gender)
 nodes = rbind(egoNodes, alterNodes)
 nodes = distinct(nodes) 
 
@@ -385,17 +662,32 @@ V(adviceNet)$size = Degree
 V(adviceNet)$eig = round(Eigenvector,2)
 V(adviceNet)$bet = round(Betweenness,2)
 V(adviceNet)$wg = nodes$wg
-
+V(adviceNet)$gender = as.character(nodes$gender)
 ```
 
 ### Visualize
 ```{r}
 ggraph(adviceNet, layout="kk") +
-  geom_edge_link()+
-  geom_node_point(aes(size=size, color=wg), show.legend=T)
+  geom_edge_link(arrow=arrow(length=unit(2,'mm')), end_cap=circle(1.2,'mm'))+
+  geom_node_point(aes(size=size, color=wg, shape=gender), show.legend=T) +
+  scale_color_manual(values=c('#1a3260', '#969fa7'))
 
 ```
 We have a much sparser network here with many components instead of one or two large components. This is likely due to the restrictive size of our analysis, however it is still interesting to note the existence of these cliques, especially given that for some examiners we have 15-20 instances of advice asking. This shows a clear preference amongst the examiners in both 162 and 219 to stick with their local friend group when resolving issues.
+
+```{r}
+unique <- applications_final[!duplicated(applications_final[, c('examiner_id')]), ]
+unique$wg = substr(unique$examiner_art_unit,1,3)
+summary_df <- applications_final %>% group_by(examiner_id) %>% summarise(Applications = length(application_number), Tenure = mean(tenure_days), Avg_Proc_Time = mean(appl_proc_days), Degree = mean(Degree), Eig = mean(Eigenvector))
+
+# ggplot(unique, aes(x=Degree, y=tenure_days)) +
+#   geom_point(aes(color=as.factor(wg)), show.legend=T) +
+#   scale_color_manual(values=c('#1a3260', '#969fa7'))
+# 
+# ggplot(summary_df, aes(x=Degree, y=Avg_Proc_Time)) +
+#   geom_point() +
+#   scale_color_manual(values=c('#1a3260'))
+```
 
 
 ### Model the relationship between centralities and app_proc_time
@@ -407,7 +699,7 @@ centralities = data.frame(centralities)
 centralities <- cbind(examiner_id = rownames(centralities), centralities)
 rownames(centralities) <- 1:nrow(centralities)
 
-centralities = merge(centralities, subset(examiner_aus, select=-c(wg)), by="examiner_id") # need art unit for the final merge with applications
+centralities = merge(centralities, subset(examiner_aus, select=-c(wg,gender)), by="examiner_id") # need art unit for the final merge with applications
 
 # now merge on examiner_id
 applications_final = merge(x=applications_full, y=centralities, by=c("examiner_id","examiner_art_unit"), all.y=TRUE)
@@ -423,13 +715,16 @@ applications_final = drop_na(applications_final)
 applications_final$wg = substr(applications_final$examiner_art_unit,1,3)
 applications_final$wg = as.factor(applications_final$wg)
 
-unique(applications_final$race) # Just Asian, White, or Hispanic examiners present in this dataset
+# rename gender var to fix a knitting error
+
+
+#unique(applications_final$race) # Just Asian, White, or Hispanic examiners present in this dataset
 
 
 
 # for our first model we will once again cover no interactions and just look at base variables
 # also, we have dropped betweenness because it is 0 for all examiners, probably due to the lack of connectivity between clusters
-lm1 = lm(appl_proc_days~Degree+Eigenvector+tenure_days+gender+race+wg, data=applications_final)
+lm1 = lm(appl_proc_days~Degree+Eigenvector+tenure_days+race+gender+wg, data=applications_final)
 summary(lm1)
 ```
 Our work-group specific analysis gives much different results from before
